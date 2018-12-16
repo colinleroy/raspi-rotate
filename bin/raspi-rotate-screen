@@ -2,6 +2,7 @@
 
 #Variables
 CONF_DIR="/etc/raspi-rotate"
+HOOKS_DIR="$CONF_DIR/hooks.d"
 XORG_TEMPLATE="$CONF_DIR/xorg.conf.d/99-raspi-rotate.conf.tmpl"
 XORG_CONF_DIR="/etc/X11/xorg.conf.d"
 XORG_CONF_FILE="$XORG_CONF_DIR/99-raspi-rotate.conf"
@@ -59,6 +60,14 @@ sed -i "s/MATRIX_SETTING/$MATRIX/" $TMP_FILE
 mkdir -p "$XORG_CONF_DIR"
 chmod 644 "$TMP_FILE"
 mv "$TMP_FILE" "$XORG_CONF_FILE"
+
+#Run hooks
+if [ -d "$HOOKS_DIR" ] ; then
+	for f in $HOOKS_DIR/?*.sh ; do
+		[ -x "$f" ] && . "$f"
+	done
+	unset f
+fi
 
 echo "Rotation set to $ROTATE"
 
