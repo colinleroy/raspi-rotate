@@ -1,0 +1,64 @@
+#!/bin/bash
+
+#Variables
+CONF_DIR="/etc/raspi-rotate"
+XORG_TEMPLATE="$CONF_DIR/xorg.conf.d/99-raspi-rotate.conf.tmpl"
+XORG_CONF_DIR="/etc/X11/xorg.conf.d"
+XORG_CONF_FILE="$XORG_CONF_DIR/99-raspi-rotate.conf"
+
+function usage
+{
+	echo "usage: $0 [rotation]"
+	echo "where rotation is one of:"
+	echo "    normal:                 no rotation"
+	echo "    cw, clockwise:          rotate 90° clockwise"
+	echo "    ccw, counter-clockwise: rotate 90° counter-clockwise"
+	echo "    ud:                     rotate 180°"
+	exit
+}
+
+#Parse argument and set variables
+if [ "$#" -gt 0 ]; then
+        case "$1" in
+        normal)
+                ROTATE="NORMAL"
+		MATRIX="1 0 0 0 1 0 0 0 1"
+                ;;
+        cw|clockwise)
+                ROTATE="CW"
+		MATRIX="0 1 0 -1 0 1 0 0 1"
+                ;;
+        ccw|counter-clockwise)
+                ROTATE="CCW"
+		MATRIX="0 -1 1 1 0 0 0 0 1"
+                ;;
+        ud|upside-down)
+                ROTATE="UD"
+		MATRIX="-1 0 1 0 -1 1 0 0 1"
+                ;;
+        *)
+		usage
+		;;
+        esac
+else
+	usage
+fi
+
+#Build the config file
+TMP_FILE=$(mktemp /tmp/rotate.XXXXXX)
+
+if [ "$ROTATE" = "NORMAL" ]; then
+	grep -v "Option.*rotate.*ROTATION_SETTING" $XORG_TEMPLATE > $TMP_FILE
+else
+	sed "s/ROTATION_SETTING/$ROTATE/" $XORG_TEMPLATE > $TMP_FILE
+fi
+
+sed -i "s/MATRIX_SETTING/$MATRIX/" $TMP_FILE
+
+#Install the config file
+mkdir -p "$XORG_CONF_DIR"
+chmod 644 "$TMP_FILE"
+mv "$TMP_FILE" "$XORG_CONF_FILE"
+
+echo "Rotation set to $ROTATE"
+
